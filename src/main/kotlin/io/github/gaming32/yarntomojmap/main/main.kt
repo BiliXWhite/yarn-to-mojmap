@@ -90,7 +90,8 @@ fun main(vararg args: String): Unit = runBlocking {
         logger.info { "开始构建映射过程" }
 
         val timing = measureTime {
-            val file = File("mappings.txt")
+            val fileName = "mappings-${parsedArgs.minecraft}-${parsedArgs.yarn}.txt"
+            val file = File(fileName)
             file.writeText("")
             val streamWriter = file.bufferedWriter()
             val mappingWriter = MappingWriter.create(streamWriter, parsedArgs.format)
