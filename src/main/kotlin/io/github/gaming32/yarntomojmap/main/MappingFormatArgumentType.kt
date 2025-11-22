@@ -16,5 +16,5 @@ object MappingFormatArgumentType : ArgumentType<MappingFormat> {
     }
 
     override fun convert(parser: ArgumentParser, arg: Argument, value: String): MappingFormat =
-        nameMapping[value.lowercase()] ?: throw ArgumentParserException("Unknown mappings format $value", parser, arg)
+        nameMapping[value.lowercase()] ?: throw ArgumentParserException("未知的映射格式 $value", parser, arg)
 }

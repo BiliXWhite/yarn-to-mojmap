@@ -9,6 +9,7 @@ import net.fabricmc.mappingio.format.MappingFormat
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.annotation.Arg
 import net.sourceforge.argparse4j.inf.ArgumentParserException
+import java.io.File
 import kotlin.system.exitProcess
 import kotlin.time.measureTime
 
@@ -18,16 +19,15 @@ fun main(vararg args: String): Unit = runBlocking {
     val parser = ArgumentParsers.newFor("yarn-to-mojmap")
         .fromFilePrefix("@")
         .build()
-        .description("Generates Yarn to Mojmap mappings files. Great for using in source-remap.")
+        .description("生成 Yarn 到 Mojmap 映射文件。非常适合在源重新映射中使用。")
     parser.addArgument("-m", "--minecraft")
-        .help("The target Minecraft version. Defaults to latest.")
+        .help("目标 Minecraft 版本。默认为最新。")
     parser.addArgument("-y", "--yarn")
-        .help("The source Yarn build. Defaults to latest.")
+        .help("源 Yarn 构建。默认为最新。")
         .type(Int::class.java)
     parser.addArgument("-f", "--format")
-        .help("The format to export mappings with. Specify either an extension or mapping-io ID. Defaults to Tiny v2.")
-        .type(MappingFormatArgumentType)
-        .setDefault(MappingFormat.TINY_2_FILE)
+        .help("导出映射所使用的格式。指定扩展或映射 io ID。默认为 Tiny v2。")
+        .type(MappingFormatArgumentType).default = MappingFormat.TINY_2_FILE
 
     val parsedArgs = object {
         @set:Arg(dest = "minecraft")
@@ -50,34 +50,34 @@ fun main(vararg args: String): Unit = runBlocking {
     try {
         val mappings = createHttpClient().use { http ->
             val (minecraftVersion, clientJsonUrl) = lookupMinecraftVersion(http, parsedArgs.minecraft)
-            logger.info { "Using Minecraft version $minecraftVersion" }
+            logger.info { "使用 Minecraft 版本 $minecraftVersion" }
 
             val mojmap = async {
                 val minecraftDownloads = lookupMinecraftFileDownloads(http, clientJsonUrl)
-                logger.info { "Loaded ${minecraftDownloads.size} download URLs" }
+                logger.info { "加载了 ${minecraftDownloads.size} 个下载 URL" }
 
                 val mojmap = downloadMojmap(http, minecraftDownloads)
-                logger.info { "Loaded ${mojmap.classes.size} classes from Mojmap" }
+                logger.info { "从 Mojmap 加载了 ${mojmap.classes.size} 个类" }
                 mojmap
             }
 
             val yarnBuild = parsedArgs.yarn ?: lookupLatestYarn(http, minecraftVersion)
             if (yarnBuild == null) {
-                logger.error { "No Yarn version found for Minecraft $minecraftVersion" }
+                logger.error { "未找到适用于 Minecraft $minecraftVersion 的 Yarn 版本" }
                 exitProcess(1)
             }
             val yarnVersion = "$minecraftVersion+build.$yarnBuild"
-            logger.info { "Using Yarn version $yarnVersion" }
+            logger.info { "使用 Yarn 版本 $yarnVersion" }
 
             val intermediaryMappings = async {
                 val result = downloadIntermediaryMappings(http, minecraftVersion)
-                logger.info { "Loaded ${result.classes.size} classes from Intermediary" }
+                logger.info { "从 Intermediary 加载了 ${result.classes.size} 个类" }
                 result
             }
 
             val yarnMappings = async {
                 val result = downloadYarnMappings(http, yarnVersion)
-                logger.info { "Loaded ${result.classes.size} classes from Yarn" }
+                logger.info { "从 Yarn 加载了 ${result.classes.size} 个类" }
                 result
             }
 
@@ -85,26 +85,27 @@ fun main(vararg args: String): Unit = runBlocking {
         }
 
         logger.info {
-            "Loaded ${mappings.mojmap.classes.size + mappings.intermediary.classes.size + mappings.yarn.classes.size}" +
-                " total class mappings"
+            "总共加载了 ${mappings.mojmap.classes.size + mappings.intermediary.classes.size + mappings.yarn.classes.size} 个类映射"
         }
-        logger.info { "Starting mapping building process" }
+        logger.info { "开始构建映射过程" }
 
         val timing = measureTime {
-            val streamWriter = System.out.bufferedWriter()
+            val file = File("mappings.txt")
+            file.writeText("")
+            val streamWriter = file.bufferedWriter()
             val mappingWriter = MappingWriter.create(streamWriter, parsedArgs.format)
-                ?: error("Unsupported output format ${parsedArgs.format}")
+                ?: error("不支持的输出格式 ${parsedArgs.format}")
             buildMappings(mappings, mappingWriter)
             streamWriter.flush()
         }
 
-        logger.info { "Finished building mappings in $timing" }
+        logger.info { "在 $timing 内完成映射构建" }
     } catch (e: IllegalStateException) {
-        // Thrown by kotlin.error()
+        // 由 kotlin.error() 抛出
         logger.error { e.message }
         exitProcess(1)
     } catch (e: Exception) {
-        logger.error(e) { "An unexpected error occurred!" }
+        logger.error(e) { "发生了一个意外错误！" }
         exitProcess(1)
     }
 }

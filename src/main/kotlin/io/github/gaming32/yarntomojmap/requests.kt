@@ -30,30 +30,30 @@ fun createHttpClient() = HttpClient {
 }
 
 suspend fun lookupMinecraftVersion(http: HttpClient, version: String?): Pair<String, Url> {
-    logger.info { "Requesting Minecraft version ${version ?: "latest"}" }
+    logger.info { "请求 Minecraft 版本 ${version ?: "最新"}" }
     val json = http.get("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")
         .body<JsonObject>()
     val useVersion = version ?: json["latest"]
         .asJsonObject["release"]
-        .asString ?: error("Missing $.latest.release in version_manifest_v2.json")
+        .asString ?: error("缺少 $.latest.release 在 version_manifest_v2.json 中")
     val versionData = json["versions"]
         .asJsonArray
         .asSequence()
         .map { it.asJsonObject }
         .firstOrNull { it["id"].asString == useVersion }
-        ?: error("No Minecraft version with id '$useVersion'")
+        ?: error("没有 ID 为 '$useVersion' 的 Minecraft 版本")
     return versionData["id"].asString to Url(versionData["url"].asString)
 }
 
 suspend fun lookupLatestYarn(http: HttpClient, minecraftVersion: String): Int? {
-    logger.info { "Requesting latest Yarn version for Minecraft $minecraftVersion" }
+    logger.info { "请求适用于 Minecraft $minecraftVersion 的最新 Yarn 版本" }
     return http.get("https://meta.fabricmc.net/v2/versions/yarn/$minecraftVersion")
         .body<JsonArray>()
         .maxOfOrNull { it.asJsonObject["build"].asInt }
 }
 
 suspend fun lookupMinecraftFileDownloads(http: HttpClient, url: Url): Map<String, Url> {
-    logger.info { "Requesting client json from $url" }
+    logger.info { "从 $url 请求客户端 JSON" }
     return http.get(url)
         .body<JsonObject>()["downloads"]
         .asJsonObject
@@ -63,7 +63,7 @@ suspend fun lookupMinecraftFileDownloads(http: HttpClient, url: Url): Map<String
 
 suspend fun downloadMojmap(http: HttpClient, downloads: Map<String, Url>): MappingTree {
     val url = downloads.getValue("client_mappings")
-    logger.info { "Downloading Mojmap from $url" }
+    logger.info { "从 $url 下载 Mojmap" }
     return http.get(url)
         .body<InputStream>()
         .bufferedReader()
@@ -78,13 +78,19 @@ suspend fun downloadMojmap(http: HttpClient, downloads: Map<String, Url>): Mappi
 }
 
 suspend fun downloadIntermediaryMappings(http: HttpClient, mcVersion: String): MappingTree {
-    logger.info { "Downloading Intermediary $mcVersion" }
-    return downloadFabricMappings(http, "https://maven.fabricmc.net/net/fabricmc/intermediary/$mcVersion/intermediary-$mcVersion-v2.jar")
+    logger.info { "下载 Intermediary $mcVersion" }
+    return downloadFabricMappings(
+        http,
+        "https://maven.fabricmc.net/net/fabricmc/intermediary/$mcVersion/intermediary-$mcVersion-v2.jar"
+    )
 }
 
 suspend fun downloadYarnMappings(http: HttpClient, yarnVersion: String): MappingTree {
-    logger.info { "Downloading Yarn $yarnVersion" }
-    return downloadFabricMappings(http, "https://maven.fabricmc.net/net/fabricmc/yarn/$yarnVersion/yarn-$yarnVersion-v2.jar")
+    logger.info { "下载 Yarn $yarnVersion" }
+    return downloadFabricMappings(
+        http,
+        "https://maven.fabricmc.net/net/fabricmc/yarn/$yarnVersion/yarn-$yarnVersion-v2.jar"
+    )
 }
 
 private suspend fun downloadFabricMappings(http: HttpClient, url: String) =
@@ -95,7 +101,7 @@ private suspend fun downloadFabricMappings(http: HttpClient, url: String) =
             val result = MemoryMappingTree()
             withContext(Dispatchers.IO) {
                 while (true) {
-                    val entry = jis.nextJarEntry ?: error("Missing mappings.tiny")
+                    val entry = jis.nextJarEntry ?: error("缺少 mappings.tiny")
                     if (entry.realName != "mappings/mappings.tiny") {
                         jis.closeEntry()
                         continue

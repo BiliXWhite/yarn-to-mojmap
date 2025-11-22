@@ -21,8 +21,8 @@ fun buildMappings(mappings: MappingsTriple, visitor: MappingVisitor) {
 
         val intermediaryClass = intermediary.getClass(obf)
         if (intermediaryClass == null) {
-            if (named != obf) { // Intermediary doesn't contain fully unobfuscated classes
-                logger.warn { "Missing intermediary name for $obf ($named)" }
+            if (named != obf) { // 中间件不包含完全反混淆的类
+                logger.warn { "缺少中间件名称 $obf ($named)" }
             }
             continue
         }
@@ -89,7 +89,7 @@ private fun MappingTree.fixInnerName(src: String): String {
         val mid = useSrc.lastIndexOf('$')
         if (mid == -1) break
         suffix = useSrc.substring(mid) + suffix
-        useSrc = useSrc.substring(0, mid)
+        useSrc = useSrc.take(mid)
     }
     return src
 }
