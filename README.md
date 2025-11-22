@@ -1,5 +1,5 @@
 # yarn-to-mojmap
-这个工具可以生成适用于 proprecessor 的从 Yarn 映射到 Mojmap 映射
+这个工具可以生成适用于 Ravel 迁移器的从 Yarn 映射到 Mojmap 映射。
 
 
 ## 使用方法
