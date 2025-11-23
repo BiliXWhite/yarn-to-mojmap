@@ -47,6 +47,8 @@ fun main(vararg args: String): Unit = runBlocking {
         exitProcess(1)
     }
 
+    var yarnBuild: Int? = null
+
     try {
         val mappings = createHttpClient().use { http ->
             val (minecraftVersion, clientJsonUrl) = lookupMinecraftVersion(http, parsedArgs.minecraft)
@@ -61,7 +63,7 @@ fun main(vararg args: String): Unit = runBlocking {
                 mojmap
             }
 
-            val yarnBuild = parsedArgs.yarn ?: lookupLatestYarn(http, minecraftVersion)
+            yarnBuild = parsedArgs.yarn ?: lookupLatestYarn(http, minecraftVersion)
             if (yarnBuild == null) {
                 logger.error { "未找到适用于 Minecraft $minecraftVersion 的 Yarn 版本" }
                 exitProcess(1)
@@ -90,7 +92,7 @@ fun main(vararg args: String): Unit = runBlocking {
         logger.info { "开始构建映射过程" }
 
         val timing = measureTime {
-            val fileName = "mappings-${parsedArgs.minecraft}-${parsedArgs.yarn}.txt"
+            val fileName = "mappings-${parsedArgs.minecraft}-${yarnBuild}.txt"
             val file = File(fileName)
             file.writeText("")
             val streamWriter = file.bufferedWriter()
